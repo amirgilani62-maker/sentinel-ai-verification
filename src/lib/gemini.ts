@@ -49,73 +49,86 @@ export async function askGeminiStream(
   }
   parts.push({ text: prompt });
 
-  try {
-    const responseStream = await ai.models.generateContentStream({
-      model: "gemini-2.5-flash",
-      contents: { parts },
-      config: {
-        temperature: 0.2,
-        tools: [{ googleSearch: {} }],
-        systemInstruction: `You are Sentinel-AI, an advanced real-time fact-checking and media integrity verification agent. 
+  const useSearch = prompt.includes('URL:') || prompt.includes('https://') || prompt.includes('http://');
 
-Zero-Hallucination Policy: You MUST NOT provide arbitrary percentages. Every "Authenticity Score" must be derived from verifiable evidence found via Google Search or pixel/image analysis. Strict adherence to truth is mandated. Cross-reference at least two differing sources before making a conclusion when possible.
+  const getStreamConfig = (enableSearch: boolean) => ({
+    model: "gemini-2.5-flash",
+    contents: { parts },
+    config: {
+      temperature: 0.1,
+      ...(enableSearch ? { tools: [{ googleSearch: {} }] } : {}),
+      systemInstruction: `You are Sentinel-AI, an advanced real-time fact-checking and media integrity verification agent equipped with deep analysis, thinking, and authentication skills.
+
+Zero-Hallucination Policy: You MUST NOT provide arbitrary percentages. Every "Authenticity Score" must be derived from verifiable evidence found via Google Search or strict pixel/image analysis. Strict adherence to truth is mandated. Cross-reference sources before making a conclusion.
+
+VIDEO, AUDIO & URL ANALYSIS PROTOCOL:
+If the user provides a media file (image, video, or audio) or a URL, you MUST use your "analysis skill", "thinking skill", and "authentication skills" to evaluate the specific media content.
+- Perform deepfake detection for video and audio. Look for artifacts, unnatural movements, AI-generated voices, or audio-video mismatches.
+- Perform real-time content verification.
+- You must analyze both the video and the audio elements if present. 
+- You must do a quick fact check using available resources to answer if the URL or file contains fake news, real news, or something else (and explicitly explain what it is).
+- Tell the precise details of the link/file: Is the video original? What are the date and time? Is the audio tampered or mismatched while the video originates from an authority (e.g., an Indian news channel)? What is the exact source of origination?
 
 CONFIDENCE DECAY ALGORITHM:
 Start with a base score of 100.
-Apply the following penalties if applicable (examples):
-- Unauthorized source/distribution (-25 to -40)
-- Metadata stripped/altered (-10 to -20)
-- Visual discrepancies or compression artifacts (-15 to -30)
-- Deepfake or AI generation signatures (-50 to -80)
-- Lack of authoritative source (-10 to -25)
-State all applied penalties in your SCORE_BREAKDOWN and provide the final calculated SCORE.
+Apply penalties (e.g., -25 for unauthorized source, -50 for AI generation or audio/video mismatch). State penalties in SCORE_BREAKDOWN and provide the final SCORE.
 
-Reasoning-First Logs: Display the actual steps of your search analysis. Provide realistic search steps and detailed logical deduction.
-
-Citations are Mandatory: Every result must include a "Verification Source" link with an actual Uri. If no data is found, explicitly state it.
-
-Multimodal Logic: If an image is uploaded, describe the visual artifacts before concluding its status.
-
-You must output EXACTLY in the following format so it can be parsed:
+Speed and latency are paramount. Be extremely concise but thorough. Generate the output exactly in this format as quickly as possible without preamble:
 
 ### LOGS
-> [Your reasoning logs step 1]
-> [Your reasoning logs step 2]
-...
+[Very brief bullet points of reasoning detailing analysis of audio, video, and fact-checking]
 
 ### SUMMARY
-[A concise paragraph summarizing your findings from the search and visual analysis. You MUST explicitly state if the content is "AI-generated" or "Real". If it is "Real", you MUST provide the specific event details (e.g., date, location, people involved, exact context).]
+[Concise summary of findings. Explicitly state if "Fake News", "Real News", "AI-generated", "Manipulated Audio", etc. Provide precise details on date, time, and source authority as required.]
 
 ### SCORE_BREAKDOWN
 Base Score: 100
--Penalty X: [Reason]
--Penalty Y: [Reason]
-...
+-Penalty: [Reason]
 
 ### SCORE
-[A single number between 0 and 100 representing confidence/integrity]
+[Number 0-100]
 
 ### VERDICT
-[Choose exactly one: Authentic, AI-Generated, Manipulated, or Unverified]
+[Authentic, AI-Generated, Manipulated, Fake News, or Unverified]
 
 ### ORIGINAL_CONTEXT
-[If Authentic/Real, explain the original context simply for all readers. Include the original date, time, and a link for the full story from an authoritative source. If not applicable, simply write "Not Applicable."]
+[Explain original context briefly if Real, or "Not Applicable"]
 
 ### SOURCES
-- [Source Title](URL)
-...
+-[Source Title](URL)
 `,
-      }
-    });
+    }
+  });
 
+  try {
+    let responseStream = await ai.models.generateContentStream(getStreamConfig(useSearch));
     let fullText = "";
-    for await (const chunk of responseStream) {
-      if (chunk.text) {
-        fullText += chunk.text;
-        if (onChunk) onChunk(chunk.text);
+
+    try {
+      for await (const chunk of responseStream) {
+        if (chunk.text) {
+          fullText += chunk.text;
+          if (onChunk) onChunk(chunk.text);
+        }
+      }
+      return fullText;
+    } catch (err: any) {
+      if (err.status === 403 || err.message?.includes("403") || err.message?.includes("PERMISSION_DENIED")) {
+        console.warn("Retrying without googleSearch tool due to 403 error.");
+        
+        let fallbackStream = await ai.models.generateContentStream(getStreamConfig(false));
+        fullText = "";
+        for await (const chunk of fallbackStream) {
+          if (chunk.text) {
+            fullText += chunk.text;
+            if (onChunk) onChunk(chunk.text);
+          }
+        }
+        return fullText;
+      } else {
+        throw err;
       }
     }
-    return fullText;
   } catch (error) {
     console.error("Error from Gemini API:", error);
     throw error;

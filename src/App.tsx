@@ -1,35 +1,111 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, Route, Switch } from "wouter";
+import { motion, AnimatePresence } from 'motion/react';
+import { Shield, Menu, MessageCircle, Upload, FileImage, X, CheckCircle2 } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { Background } from './components/Background';
+import { Scanner } from './components/Scanner';
+import { Terminals } from './components/Terminals';
+import { Report } from './components/Report';
+import { AIChatBox } from './components/AIChatBox';
+import { askGeminiStream } from './lib/gemini';
 
 function Header() {
-  return (
-    <header className="w-full relative z-20 flex justify-between items-center px-6 py-8 md:px-12 max-w-[1400px] mx-auto">
-      <Link href="/" className="flex items-center gap-3 cursor-pointer">
-        <Shield className="w-8 h-8 text-yellow-500 stroke-[1.5]" />
-        <div className="flex flex-col">
-           <span className="font-['Anton'] text-2xl tracking-[0.05em] text-white leading-none">SENTINEL</span>
-           <span className="text-[9px] font-mono tracking-[0.3em] text-white/50 uppercase">Security</span>
-        </div>
-      </Link>
-      
-      <nav className="hidden md:flex gap-8 text-[15px] font-medium text-white shadow-sm">
-        <Link href="/security" className="hover:text-yellow-500 transition-colors">Security</Link>
-        <Link href="/about" className="hover:text-yellow-500 transition-colors">About us</Link>
-        <Link href="/services" className="hover:text-yellow-500 transition-colors">Services</Link>
-        <Link href="/database" className="hover:text-yellow-500 transition-colors">Database</Link>
-        <Link href="/pricing" className="hover:text-yellow-500 transition-colors">Pricing</Link>
-        <Link href="/integrations" className="hover:text-yellow-500 transition-colors">Integrations</Link>
-        <Link href="/contact" className="hover:text-yellow-500 transition-colors">Contact us</Link>
-      </nav>
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-      <button className="md:hidden text-white">
-        <Menu className="w-6 h-6" />
-      </button>
-    </header>
+  return (
+    <>
+      <header className="w-full relative z-20 flex justify-between items-center px-6 py-8 md:px-12 max-w-[1400px] mx-auto">
+        <Link href="/" className="flex items-center gap-3 cursor-pointer">
+          <Shield className="w-8 h-8 text-yellow-500 stroke-[1.5]" />
+          <div className="flex flex-col">
+             <span className="font-['Anton'] text-2xl tracking-[0.05em] text-white leading-none">SENTINEL</span>
+             <span className="text-[9px] font-mono tracking-[0.3em] text-white/50 uppercase">Security</span>
+          </div>
+        </Link>
+        
+        <nav className="hidden md:flex gap-8 text-[15px] font-medium text-white shadow-sm">
+          <Link href="/security" className="hover:text-yellow-500 transition-colors">Security</Link>
+          <Link href="/about" className="hover:text-yellow-500 transition-colors">About us</Link>
+          <Link href="/services" className="hover:text-yellow-500 transition-colors">Services</Link>
+          <Link href="/database" className="hover:text-yellow-500 transition-colors">Database</Link>
+          <Link href="/pricing" className="hover:text-yellow-500 transition-colors">Pricing</Link>
+          <Link href="/integrations" className="hover:text-yellow-500 transition-colors">Integrations</Link>
+          <Link href="/contact" className="hover:text-yellow-500 transition-colors">Contact us</Link>
+        </nav>
+
+        <button 
+          className="md:hidden text-white hover:text-yellow-500 transition-colors p-2 -mr-2 relative z-50 cursor-pointer"
+          onClick={() => setIsMobileMenuOpen(true)}
+          title="Open Menu"
+        >
+          <Menu className="w-8 h-8" />
+        </button>
+      </header>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex justify-end md:hidden"
+          >
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            
+            {/* Menu Content */}
+            <motion.div 
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-[280px] h-full bg-[#050505] border-l border-white/10 flex flex-col p-6 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-12">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-6 h-6 text-yellow-500 stroke-[1.5]" />
+                  <div className="flex flex-col">
+                     <span className="font-['Anton'] text-xl tracking-[0.05em] text-white leading-none">SENTINEL</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-white hover:text-yellow-500 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <nav className="flex flex-col gap-6 text-lg font-medium text-white/80">
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Home</Link>
+                <Link href="/security" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Security</Link>
+                <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">About us</Link>
+                <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Services</Link>
+                <Link href="/database" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Database</Link>
+                <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Pricing</Link>
+                <Link href="/integrations" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Integrations</Link>
+                <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-yellow-500 transition-colors block py-2">Contact us</Link>
+              </nav>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
+import { AboutPage, SecurityPage, ServicesPage, DatabasePage, PricingPage, IntegrationsPage, ContactPage, PrivacyPage, TermsPage } from './pages/ContentPages';
+
 function PlaceholderPage({ title, description }: { title: string, description: string }) {
+
   return (
     <div className="flex-1 flex items-center justify-center relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 py-12">
       <div className="text-center">
@@ -62,15 +138,6 @@ function Footer() {
     </footer>
   );
 }
-import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Menu, MessageCircle, Upload, FileImage, X, CheckCircle2 } from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
-import { Background } from './components/Background';
-import { Scanner } from './components/Scanner';
-import { Terminals } from './components/Terminals';
-import { Report } from './components/Report';
-import { AIChatBox } from './components/AIChatBox';
-import { askGeminiStream } from './lib/gemini';
 
 type AppState = 'idle' | 'scanning' | 'complete';
 
@@ -98,30 +165,16 @@ function Home() {
     const f = acceptedFiles[0];
     if (f) {
       setIsReadingFile(true);
-      setReadProgress(0);
+      setReadProgress(100);
       
-      const interval = setInterval(() => {
-        setReadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return prev;
-          }
-          return prev + 15;
-        });
-      }, 50);
-
       const reader = new FileReader();
       reader.onload = () => {
-        clearInterval(interval);
-        setReadProgress(100);
-        setTimeout(() => {
-          setFile(f);
-          const dataUrl = reader.result as string;
-          const base64 = dataUrl.split(',')[1];
-          setFileBase64(base64);
-          setIsReadingFile(false);
-          setReadProgress(0);
-        }, 400); 
+        setFile(f);
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(',')[1];
+        setFileBase64(base64);
+        setIsReadingFile(false);
+        setReadProgress(0);
       };
       reader.readAsDataURL(f);
     }
@@ -129,7 +182,11 @@ function Home() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
     onDrop, 
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+    accept: { 
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
+      'video/*': ['.mp4', '.webm', '.ogg', '.mov'],
+      'audio/*': ['.mp3', '.wav', '.ogg', '.m4a']
+    },
     maxFiles: 1 
   });
 
@@ -145,11 +202,30 @@ function Home() {
     setGeminiOutput('');
     setParsedData(null);
 
-    const query = finalUrl ? `Analyze this topic or source URL: ${finalUrl}` : `Analyze the provided image.`;
+    const query = finalUrl 
+      ? `Analyze this specific media content or source URL: ${finalUrl}. Perform a real-time fact-check, analyze both audio and video, and provide details including originality, dates, and authoritative sources.` 
+      : `Analyze the provided media file (image, video, or audio). Detect any deepfakes, AI-generation, tampering, or mismatches.`;
     
     try {
+      let currentOutput = "";
       const result = await askGeminiStream(query, fileBase64 || undefined, file?.type, (chunk) => {
-        setGeminiOutput((prev) => prev + chunk);
+        currentOutput += chunk;
+        setGeminiOutput(currentOutput);
+        
+        // Dynamic real-time partial parsing
+        const logsMatch = currentOutput.match(/### LOGS\n([\s\S]*?)(?=\n###|$)/i);
+        const verdictMatch = currentOutput.match(/### VERDICT\n([\s\S]*?)(?=\n###|$)/i);
+        if (logsMatch || verdictMatch) {
+            setParsedData(prev => ({
+                logs: logsMatch ? logsMatch[1].trim() : prev?.logs || "",
+                summary: prev?.summary || "",
+                scoreBreakdown: prev?.scoreBreakdown || "",
+                score: prev?.score || 50,
+                verdict: verdictMatch ? verdictMatch[1].trim() : prev?.verdict || "Analyzing...",
+                originalContext: prev?.originalContext || "",
+                sources: prev?.sources || ""
+            }));
+        }
       });
       
       const logsMatch = result.match(/### LOGS\n([\s\S]*?)(?=\n###|$)/i);
@@ -248,8 +324,8 @@ function Home() {
                       <div {...getRootProps()} className={`relative overflow-hidden border-2 border-dashed ${isDragActive ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/20 bg-[#1A1A1A]/60'} rounded-sm p-8 text-center cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/5 transition-all duration-300 group`}>
                         <input {...getInputProps()} />
                         <Upload className={`w-8 h-8 mx-auto mb-3 transition-colors duration-300 ${isDragActive ? 'text-yellow-500' : 'text-white/40 group-hover:text-yellow-400'}`} />
-                        <p className="text-sm text-white/80 font-semibold mb-1">Drag & drop an image</p>
-                        <p className="text-[11px] text-white/40 font-mono tracking-wider uppercase">or click to browse local files</p>
+                        <p className="text-sm text-white/80 font-semibold mb-1">Drag & drop media</p>
+                        <p className="text-[11px] text-white/40 font-mono tracking-wider uppercase">Image, Video, or Audio</p>
                         
                         {/* Animated corner accents */}
                         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-transparent group-hover:border-yellow-500 transition-colors" />
@@ -299,21 +375,27 @@ function Home() {
                       />
                     </button>
 
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <span className="w-full text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Quick Testers / Demos</span>
-                      <button 
-                        onClick={() => handleInitiateScan('https://www.google.com/search?q=Messi+2026+Goal')}
-                        className="px-3 py-1.5 bg-white/5 hover:bg-teal-500/20 hover:text-teal-400 border border-white/10 hover:border-teal-500/50 rounded-sm text-xs font-mono text-white/60 transition-all"
-                      >
-                        Authentic Asset
-                      </button>
-                      <button 
-                        onClick={() => handleInitiateScan('https://www.google.com/search?q=AI+generated+referee+fight')}
-                        className="px-3 py-1.5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 hover:border-red-500/50 rounded-sm text-xs font-mono text-white/60 transition-all"
-                      >
-                        Deepfake Asset
-                      </button>
-                    </div>
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        <span className="w-full text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Quick Testers / Demos</span>
+                        <button 
+                          onClick={() => handleInitiateScan('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-teal-500/20 hover:text-teal-400 border border-white/10 hover:border-teal-500/50 rounded-sm text-xs font-mono text-white/60 transition-all"
+                        >
+                          Authentic Asset
+                        </button>
+                        <button 
+                          onClick={() => handleInitiateScan('https://www.tiktok.com/@deeptomcruise')}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 hover:border-red-500/50 rounded-sm text-xs font-mono text-white/60 transition-all"
+                        >
+                          Deepfake Video
+                        </button>
+                        <button 
+                          onClick={() => handleInitiateScan('https://www.youtube.com/watch?v=b2yM6AOrB1Q')}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-orange-500/20 hover:text-orange-400 border border-white/10 hover:border-orange-500/50 rounded-sm text-xs font-mono text-white/60 transition-all text-left"
+                        >
+                          AI Voice / Audio
+                        </button>
+                      </div>
                   </>
                 </div>
               </motion.div>
@@ -431,15 +513,15 @@ export default function App() {
       
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/security"><PlaceholderPage title="Security" description="Learn about our robust security measures and protocols." /></Route>
-        <Route path="/about"><PlaceholderPage title="About Us" description="Discover our mission to protect digital media." /></Route>
-        <Route path="/services"><PlaceholderPage title="Services" description="Explore our media integrity and fact-checking services." /></Route>
-        <Route path="/database"><PlaceholderPage title="Database" description="Access our comprehensive database of verified and flagged media." /></Route>
-        <Route path="/pricing"><PlaceholderPage title="Pricing" description="Flexible plans for individuals and enterprises." /></Route>
-        <Route path="/integrations"><PlaceholderPage title="Integrations" description="Connect Sentinel-AI with your existing tools." /></Route>
-        <Route path="/contact"><PlaceholderPage title="Contact Us" description="Get in touch with our team for support or inquiries." /></Route>
-        <Route path="/privacy"><PlaceholderPage title="Privacy Policy" description="We use Google services to build and process scans. We prioritize your data safety." /></Route>
-        <Route path="/terms"><PlaceholderPage title="Legal Terms" description="By using Sentinel-AI, you agree to our usage guidelines." /></Route>
+        <Route path="/security"><SecurityPage /></Route>
+        <Route path="/about"><AboutPage /></Route>
+        <Route path="/services"><ServicesPage /></Route>
+        <Route path="/database"><DatabasePage /></Route>
+        <Route path="/pricing"><PricingPage /></Route>
+        <Route path="/integrations"><IntegrationsPage /></Route>
+        <Route path="/contact"><ContactPage /></Route>
+        <Route path="/privacy"><PrivacyPage /></Route>
+        <Route path="/terms"><TermsPage /></Route>
         <Route><PlaceholderPage title="404" description="The page you are looking for does not exist." /></Route>
       </Switch>
       <Footer />

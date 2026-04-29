@@ -1,10 +1,11 @@
-import { motion } from 'motion/react';
-import { ShieldAlert, ShieldCheck, Fingerprint, Activity, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShieldAlert, ShieldCheck, Fingerprint, Activity, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 export function Report({ isActive, resultData }: { isActive: boolean; resultData?: any }) {
   const [gauge, setGauge] = useState(0);
+  const [showSources, setShowSources] = useState(false);
 
   const verdict = resultData?.verdict || "Unverified";
   const score = resultData?.score || 0;
@@ -26,18 +27,16 @@ export function Report({ isActive, resultData }: { isActive: boolean; resultData
 
   useEffect(() => {
     if (isActive) {
-      setTimeout(() => {
-        let current = 0;
-        const interval = setInterval(() => {
-          current += Math.max(1, Math.floor(targetGauge / 20));
-          if (current >= targetGauge) {
-            setGauge(targetGauge);
-            clearInterval(interval);
-          } else {
-            setGauge(current);
-          }
-        }, 30);
-      }, 500);
+      let current = 0;
+      const interval = setInterval(() => {
+        current += Math.max(1, Math.floor(targetGauge / 10));
+        if (current >= targetGauge) {
+          setGauge(targetGauge);
+          clearInterval(interval);
+        } else {
+          setGauge(current);
+        }
+      }, 16);
     }
   }, [isActive, targetGauge]);
 
@@ -103,10 +102,27 @@ export function Report({ isActive, resultData }: { isActive: boolean; resultData
            </div>
         </div>
         <div>
-           <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest font-mono mb-2">Sources & Citations</h3>
-           <div className="p-3 rounded-sm bg-black/40 border border-white/5 text-sm font-mono text-blue-300 break-words whitespace-pre-wrap">
-             {sources}
-           </div>
+           <button 
+             onClick={() => setShowSources(!showSources)}
+             className="w-full flex items-center justify-between text-xs font-bold text-white/50 uppercase tracking-widest font-mono mb-2 hover:text-white/80 transition-colors"
+           >
+             <span>Sources & Citations</span>
+             {showSources ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+           </button>
+           <AnimatePresence>
+             {showSources && (
+               <motion.div
+                 initial={{ height: 0, opacity: 0 }}
+                 animate={{ height: 'auto', opacity: 1 }}
+                 exit={{ height: 0, opacity: 0 }}
+                 className="overflow-hidden"
+               >
+                 <div className="p-3 rounded-sm bg-black/40 border border-white/5 text-sm font-mono text-blue-300 break-words whitespace-pre-wrap mt-2">
+                   {sources}
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
         </div>
       </div>
 

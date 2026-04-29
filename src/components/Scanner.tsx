@@ -15,7 +15,7 @@ const HexCode = () => {
 
 export function Scanner({ isActive = false, isComplete = false, verdict = "Unverified" }: { isActive?: boolean; isComplete?: boolean; verdict?: string }) {
   const isAuthentic = verdict === 'Authentic';
-  const isDanger = verdict === 'Fake' || verdict === 'AI-Generated' || verdict === 'Manipulated' || verdict === 'Unauthorized';
+  const isDanger = verdict === 'Fake' || verdict === 'Fake News' || verdict === 'AI-Generated' || verdict === 'Manipulated' || verdict === 'Manipulated Audio' || verdict === 'Unauthorized';
   
   // Refined Color Palette tailored to Sentinel-AI
   const ringColor = isComplete ? (isAuthentic ? 'rgba(45, 212, 191, 0.4)' : isDanger ? 'rgba(239, 68, 68, 0.4)' : 'rgba(234, 179, 8, 0.4)') : isActive ? 'rgba(234, 179, 8, 0.6)' : 'rgba(255, 255, 255, 0.1)';

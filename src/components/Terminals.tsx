@@ -28,7 +28,7 @@ export function Terminals({ isActive, liveLogs = "" }: { isActive: boolean; live
       } else {
         clearInterval(interval);
       }
-    }, 1000);
+    }, 150);
 
     return () => clearInterval(interval);
   }, [isActive]);
